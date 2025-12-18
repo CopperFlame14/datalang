@@ -314,38 +314,46 @@
                     }, 3000);
                 };
 
-                recognition.onresult = (event) => {
-                    let interimTranscript = '';
+                async function translateToEnglish(text, fromLangCode) {
+                    try {
+                        const from = fromLangCode.split('-')[0]; // Extract 'hi' or 'ta'
+                        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|en`;
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        if (data.responseData) {
+                            return data.responseData.translatedText;
+                        }
+                        return text;
+                    } catch (error) {
+                        console.error("Translation error:", error);
+                        return text;
+                    }
+                }
+
+                recognition.onresult = async (event) => {
                     let finalTranscript = '';
 
                     for (let i = event.resultIndex; i < event.results.length; ++i) {
                         if (event.results[i].isFinal) {
                             finalTranscript += event.results[i][0].transcript;
-                        } else {
-                            interimTranscript += event.results[i][0].transcript;
                         }
                     }
 
-                    // If existing text, append. For this simple demo, we handle exact replacement or append logic.
-                    // To avoid overwriting existing manual edits too aggressively, let's just use the final transcript logic carefully.
-                    // Ideally, we append to cursor, but for simplicity:
-                    // If just starting, we might want to clear or append. 
-                    // Let's implement: Append to existing text with a space.
-
-                    // Actually, with interim results, simply appending to the *value* of textarea repeatedly causes duplication.
-                    // Common pattern: store 'previous' content before listening session.
-
-                    // Simplified approach for this demo:
-                    // We will not store previous state, but we will rely on 'isFinal' to commit.
-                    // For interim display, we can show it in a placeholder or just update the textarea if it was empty.
-                    // Let's go with: Only update on final result to keep it robust for manual edits mixed with speech.
-                    // OR: Update consistently.
-
-                    // Better interaction: Just update textarea with what we hear.
-                    // If isFinal, we append.
                     if (finalTranscript) {
+                        const selectedLang = languageSelect.value;
+                        let textToInsert = finalTranscript;
+
+                        // Translate if Hindi or Tamil
+                        if (selectedLang.startsWith('hi') || selectedLang.startsWith('ta')) {
+                            statusEl.textContent = "Translating to English...";
+                            statusEl.className = "status-text listening";
+                            textToInsert = await translateToEnglish(finalTranscript, selectedLang);
+                            statusEl.textContent = "Translated.";
+                            statusEl.className = "status-text success";
+                        }
+
                         const currentText = outputText.value;
-                        outputText.value = currentText ? currentText + ' ' + finalTranscript : finalTranscript;
+                        outputText.value = currentText ? currentText + ' ' + textToInsert : textToInsert;
                     }
                 };
 
