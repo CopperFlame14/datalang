@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multilingual Speech to Text</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --text-secondary: #6b7280;
+            --error-color: #ef4444;
+            --success-color: #22c55e;
+            --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-2px);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            background-color: #fff;
+            font-size: 1rem;
+            color: var(--text-color);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .mic-button-wrapper {
+            margin: 2rem 0;
+            position: relative;
+            display: inline-block;
+        }
+
+        #mic-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            font-size: 2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
+            position: relative;
+            z-index: 10;
+        }
+
+        #mic-btn:hover {
+            background-color: var(--primary-hover);
+            transform: scale(1.05);
+        }
+
+        #mic-btn:active {
+            transform: scale(0.95);
+        }
+
+        #mic-btn.listening {
+            background-color: #ef4444;
+            animation: pulse-red 2s infinite;
+        }
+
+        /* Pulse animation ring */
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            opacity: 0;
+        }
+
+        #mic-btn.listening+.pulse-ring {
+            animation: ripple 1.5s linear infinite;
+        }
+
+        @keyframes ripple {
+            0% {
+                width: 80px;
+                height: 80px;
+                opacity: 0.5;
+            }
+
+            100% {
+                width: 160px;
+                height: 160px;
+                opacity: 0;
+            }
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .status-text {
+            height: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .status-text.listening {
+            color: var(--primary-color);
+        }
+
+        .status-text.success {
+            color: var(--success-color);
+        }
+
+        .status-text.error {
+            color: var(--error-color);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--text-color);
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 1.5rem;
+            background-color: #f9fafb;
+        }
+
+        textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            background-color: #fff;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.875rem;
+            background-color: var(--text-color);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .submit-btn:hover {
+            background-color: #111827;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+
+            #mic-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Voice Input</h1>
+
+        <div class="control-group">
+            <label for="language-select">Select Language</label>
+            <select id="language-select">
+                <option value="en-US">English (US)</option>
+                <option value="hi-IN">Hindi (India)</option>
+                <option value="ta-IN">Tamil (India)</option>
+            </select>
+        </div>
+
+        <div class="mic-button-wrapper">
+            <button id="mic-btn" title="Start Listening">🎙</button>
+            <div class="pulse-ring"></div>
+        </div>
+
+        <div id="status" class="status-text">Click microphone to speak</div>
+
+        <textarea id="output-text" placeholder="Your speech will appear here..."></textarea>
+
+        <button id="submit-btn" class="submit-btn">Submit Processing Task</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const micBtn = document.getElementById('mic-btn');
+            const statusEl = document.getElementById('status');
+            const outputText = document.getElementById('output-text');
+            const languageSelect = document.getElementById('language-select');
+            const submitBtn = document.getElementById('submit-btn');
+
+            let recognition;
+            let isListening = false;
+
+            // Check browser support
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false; // Capture one sentence/command at a time for this demo
+                recognition.interimResults = true; // Show results as they are spoken
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    micBtn.classList.add('listening');
+                    statusEl.textContent = "Listening...";
+                    statusEl.className = "status-text listening";
+                };
+
+                recognition.onend = () => {
+                    isListening = false;
+                    micBtn.classList.remove('listening');
+                    statusEl.textContent = "Speech recognized";
+                    statusEl.className = "status-text success";
+
+                    // Reset status message after a delay
+                    setTimeout(() => {
+                        if (!isListening) {
+                            statusEl.textContent = "Click microphone to speak";
+                            statusEl.className = "status-text";
+                        }
+                    }, 3000);
+                };
+
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    // If existing text, append. For this simple demo, we handle exact replacement or append logic.
+                    // To avoid overwriting existing manual edits too aggressively, let's just use the final transcript logic carefully.
+                    // Ideally, we append to cursor, but for simplicity:
+                    // If just starting, we might want to clear or append. 
+                    // Let's implement: Append to existing text with a space.
+
+                    // Actually, with interim results, simply appending to the *value* of textarea repeatedly causes duplication.
+                    // Common pattern: store 'previous' content before listening session.
+
+                    // Simplified approach for this demo:
+                    // We will not store previous state, but we will rely on 'isFinal' to commit.
+                    // For interim display, we can show it in a placeholder or just update the textarea if it was empty.
+                    // Let's go with: Only update on final result to keep it robust for manual edits mixed with speech.
+                    // OR: Update consistently.
+
+                    // Better interaction: Just update textarea with what we hear.
+                    // If isFinal, we append.
+                    if (finalTranscript) {
+                        const currentText = outputText.value;
+                        outputText.value = currentText ? currentText + ' ' + finalTranscript : finalTranscript;
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    isListening = false;
+                    micBtn.classList.remove('listening');
+                    statusEl.textContent = "Error: " + event.error;
+                    statusEl.className = "status-text error";
+                };
+
+            } else {
+                statusEl.textContent = "Browser not supported. Use Chrome.";
+                statusEl.className = "status-text error";
+                micBtn.disabled = true;
+            }
+
+            micBtn.addEventListener('click', () => {
+                if (!recognition) return;
+
+                if (isListening) {
+                    recognition.stop();
+                } else {
+                    recognition.lang = languageSelect.value;
+                    recognition.start();
+                }
+            });
+
+            submitBtn.addEventListener('click', async () => {
+                const text = outputText.value;
+                if (text.trim()) {
+                    statusEl.textContent = "Processing intent...";
+                    statusEl.className = "status-text listening";
+
+                    try {
+                        const response = await fetch('/extract-intent', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ text: text })
+                        });
+
+                        if (!response.ok) throw new Error('Network response was not ok');
+
+                        const result = await response.json();
+                        console.log("Extracted Intent:", result);
+
+                        statusEl.textContent = `Intent: ${result.intent} | Title: ${result.task_title}`;
+                        statusEl.className = "status-text success";
+
+                        // Alert the result for demo purposes
+                        alert(`Intent Extracted!\n\nAction: ${result.intent}\nTask: ${result.task_title}\nTime: ${result.datetime || 'N/A'}\nPriority: ${result.priority}`);
+
+                    } catch (error) {
+                        console.error("Error:", error);
+                        statusEl.textContent = "Error processing task.";
+                        statusEl.className = "status-text error";
+                    }
+                } else {
+                    statusEl.textContent = "Please speak or type something first.";
+                    statusEl.className = "status-text error";
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
