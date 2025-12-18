@@ -341,19 +341,34 @@
 
                     if (finalTranscript) {
                         const selectedLang = languageSelect.value;
-                        let textToInsert = finalTranscript;
+                        let textToInsert = finalTranscript.trim();
 
-                        // Translate if Hindi or Tamil
-                        if (selectedLang.startsWith('hi') || selectedLang.startsWith('ta')) {
-                            statusEl.textContent = "Translating to English...";
+                        // Only translate if not English
+                        if (!selectedLang.startsWith('en')) {
+                            statusEl.textContent = "Translating speech...";
                             statusEl.className = "status-text listening";
-                            textToInsert = await translateToEnglish(finalTranscript, selectedLang);
-                            statusEl.textContent = "Translated.";
-                            statusEl.className = "status-text success";
+
+                            const translated = await translateToEnglish(textToInsert, selectedLang);
+                            if (translated && translated !== textToInsert) {
+                                textToInsert = translated;
+                                statusEl.textContent = "Translated to English";
+                                statusEl.className = "status-text success";
+                            } else {
+                                statusEl.textContent = "Speech recognized";
+                                statusEl.className = "status-text success";
+                            }
                         }
 
-                        const currentText = outputText.value;
+                        const currentText = outputText.value.trim();
                         outputText.value = currentText ? currentText + ' ' + textToInsert : textToInsert;
+
+                        // Briefly show success then clear status
+                        setTimeout(() => {
+                            if (!isListening) {
+                                statusEl.textContent = "Click microphone to speak";
+                                statusEl.className = "status-text";
+                            }
+                        }, 2000);
                     }
                 };
 
